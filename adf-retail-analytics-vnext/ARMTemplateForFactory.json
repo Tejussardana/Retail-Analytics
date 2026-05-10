@@ -1,0 +1,1367 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "adf-retail-analytics-vnext"
+		},
+		"LS_ADLS_Retail_Vnext_accountKey": {
+			"type": "secureString",
+			"metadata": "Secure string for 'accountKey' of 'LS_ADLS_Retail_Vnext'"
+		},
+		"LS_SQL_DB_Retail_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'LS_SQL_DB_Retail'"
+		},
+		"LS_ADLS_Retail_Vnext_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stretailanalyticsvnext.dfs.core.windows.net/"
+		},
+		"LS_SQL_DB_Retail_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sql-retail-analytics-vnext.database.windows.net"
+		},
+		"LS_SQL_DB_Retail_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sqldb-retail-analytics-VNext"
+		},
+		"LS_SQL_DB_Retail_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "sqladmin"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Orders_Raw_to_staging')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_orders_rawToStaging",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Orders_Raw_CSV",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Orders_Staging_CSV",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-05-10T13:57:46Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Orders_Raw_CSV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Orders_Staging_CSV')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_Run_retail_order_df')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Retail_Order_Data_Flow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_Retail_Order_Analytics",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"srcCustomers": {},
+									"srcOrders": {},
+									"srcPayments": {},
+									"srcProducts": {},
+									"srcReturns": {},
+									"sinkFinalSales": {},
+									"sinkRejectedOrders": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2026-05-10T17:38:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_Retail_Order_Analytics')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Customers_Raw_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "customers_raw.csv",
+						"folderPath": "retail/customers/2026/05",
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "CustomerID",
+						"type": "String"
+					},
+					{
+						"name": "CustomerName",
+						"type": "String"
+					},
+					{
+						"name": "Email",
+						"type": "String"
+					},
+					{
+						"name": "City",
+						"type": "String"
+					},
+					{
+						"name": "State",
+						"type": "String"
+					},
+					{
+						"name": "Region",
+						"type": "String"
+					},
+					{
+						"name": "CustomerSegment",
+						"type": "String"
+					},
+					{
+						"name": "SignupDate",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Orders_Raw_CSV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "orders_raw.csv",
+						"folderPath": "retail/orders/2026/05",
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "OrderID",
+						"type": "String"
+					},
+					{
+						"name": "OrderDate",
+						"type": "String"
+					},
+					{
+						"name": "CustomerID",
+						"type": "String"
+					},
+					{
+						"name": "ProductID",
+						"type": "String"
+					},
+					{
+						"name": "Quantity",
+						"type": "String"
+					},
+					{
+						"name": "Discount",
+						"type": "String"
+					},
+					{
+						"name": "OrderStatus",
+						"type": "String"
+					},
+					{
+						"name": "SalesChannel",
+						"type": "String"
+					},
+					{
+						"name": "SalesRep",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Orders_Staging_CSV')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "retail/orders_staging",
+						"fileSystem": "curated"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Payments_Raw_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "payments_raw.csv",
+						"folderPath": "retail/payments/2026/05",
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "PaymentID",
+						"type": "String"
+					},
+					{
+						"name": "OrderID",
+						"type": "String"
+					},
+					{
+						"name": "PaymentDate",
+						"type": "String"
+					},
+					{
+						"name": "PaymentMode",
+						"type": "String"
+					},
+					{
+						"name": "PaymentStatus",
+						"type": "String"
+					},
+					{
+						"name": "AmountPaid",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Products_raw_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "products_raw.csv",
+						"folderPath": "retail/products/2026/05",
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "ProductID",
+						"type": "String"
+					},
+					{
+						"name": "ProductName",
+						"type": "String"
+					},
+					{
+						"name": "Category",
+						"type": "String"
+					},
+					{
+						"name": "SubCategory",
+						"type": "String"
+					},
+					{
+						"name": "Brand",
+						"type": "String"
+					},
+					{
+						"name": "UnitPrice",
+						"type": "String"
+					},
+					{
+						"name": "CostPrice",
+						"type": "String"
+					},
+					{
+						"name": "IsActive",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Returns_raw_csv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_Retail_Vnext",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "returns_raw.csv",
+						"folderPath": "retail/returns/2026/05",
+						"fileSystem": "raw"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "ReturnID",
+						"type": "String"
+					},
+					{
+						"name": "OrderID",
+						"type": "String"
+					},
+					{
+						"name": "ReturnDate",
+						"type": "String"
+					},
+					{
+						"name": "ReturnReason",
+						"type": "String"
+					},
+					{
+						"name": "RefundAmount",
+						"type": "String"
+					},
+					{
+						"name": "ReturnStatus",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_Retail_Vnext')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_Final_Sales_Analytics')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_DB_Retail",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "OrderID",
+						"type": "varchar"
+					},
+					{
+						"name": "OrderDate",
+						"type": "date"
+					},
+					{
+						"name": "CustomerID",
+						"type": "varchar"
+					},
+					{
+						"name": "CustomerName",
+						"type": "varchar"
+					},
+					{
+						"name": "Email",
+						"type": "varchar"
+					},
+					{
+						"name": "City",
+						"type": "varchar"
+					},
+					{
+						"name": "State",
+						"type": "varchar"
+					},
+					{
+						"name": "Region",
+						"type": "varchar"
+					},
+					{
+						"name": "CustomerSegment",
+						"type": "varchar"
+					},
+					{
+						"name": "ProductID",
+						"type": "varchar"
+					},
+					{
+						"name": "ProductName",
+						"type": "varchar"
+					},
+					{
+						"name": "Category",
+						"type": "varchar"
+					},
+					{
+						"name": "SubCategory",
+						"type": "varchar"
+					},
+					{
+						"name": "Brand",
+						"type": "varchar"
+					},
+					{
+						"name": "Quantity",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Discount",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 4
+					},
+					{
+						"name": "OrderStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "SalesChannel",
+						"type": "varchar"
+					},
+					{
+						"name": "SalesRep",
+						"type": "varchar"
+					},
+					{
+						"name": "PaymentID",
+						"type": "varchar"
+					},
+					{
+						"name": "PaymentDate",
+						"type": "date"
+					},
+					{
+						"name": "PaymentMode",
+						"type": "varchar"
+					},
+					{
+						"name": "PaymentStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "AmountPaid",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "ReturnID",
+						"type": "varchar"
+					},
+					{
+						"name": "ReturnDate",
+						"type": "date"
+					},
+					{
+						"name": "ReturnReason",
+						"type": "varchar"
+					},
+					{
+						"name": "ReturnStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "RefundAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "UnitPrice",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "CostPrice",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "GrossAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "DiscountAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "NetAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "GSTAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "FinalAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "AdjustedFinalAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "CostAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "ProfitAmount",
+						"type": "decimal",
+						"precision": 18,
+						"scale": 2
+					},
+					{
+						"name": "ProfitMargin",
+						"type": "decimal",
+						"precision": 10,
+						"scale": 2
+					},
+					{
+						"name": "PaymentFlag",
+						"type": "varchar"
+					},
+					{
+						"name": "ReturnFlag",
+						"type": "varchar"
+					},
+					{
+						"name": "RevenueCategory",
+						"type": "varchar"
+					},
+					{
+						"name": "LoadDateTime",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "final_sales_analytics"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_DB_Retail')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_SQL_Rejected_Orders')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_DB_Retail",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "RejectedID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "OrderID",
+						"type": "varchar"
+					},
+					{
+						"name": "OrderDate",
+						"type": "varchar"
+					},
+					{
+						"name": "CustomerID",
+						"type": "varchar"
+					},
+					{
+						"name": "ProductID",
+						"type": "varchar"
+					},
+					{
+						"name": "Quantity",
+						"type": "varchar"
+					},
+					{
+						"name": "Discount",
+						"type": "varchar"
+					},
+					{
+						"name": "OrderStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "SalesChannel",
+						"type": "varchar"
+					},
+					{
+						"name": "SalesRep",
+						"type": "varchar"
+					},
+					{
+						"name": "PaymentStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "ReturnStatus",
+						"type": "varchar"
+					},
+					{
+						"name": "RejectReason",
+						"type": "varchar"
+					},
+					{
+						"name": "SourceFileName",
+						"type": "varchar"
+					},
+					{
+						"name": "RejectedDateTime",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "rejected_orders"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_DB_Retail')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_Retail_Vnext')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_Retail_Vnext_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "SecureString",
+						"value": "[parameters('LS_ADLS_Retail_Vnext_accountKey')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SQL_DB_Retail')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_SQL_DB_Retail_properties_typeProperties_server')]",
+					"database": "[parameters('LS_SQL_DB_Retail_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_SQL_DB_Retail_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('LS_SQL_DB_Retail_password')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_Retail_Order_Analytics')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Customers_Raw_csv",
+								"type": "DatasetReference"
+							},
+							"name": "srcCustomers"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Orders_Raw_CSV",
+								"type": "DatasetReference"
+							},
+							"name": "srcOrders"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Payments_Raw_csv",
+								"type": "DatasetReference"
+							},
+							"name": "srcPayments"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Products_raw_csv",
+								"type": "DatasetReference"
+							},
+							"name": "srcProducts"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_Returns_raw_csv",
+								"type": "DatasetReference"
+							},
+							"name": "srcReturns"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_Final_Sales_Analytics",
+								"type": "DatasetReference"
+							},
+							"name": "sinkFinalSales"
+						},
+						{
+							"dataset": {
+								"referenceName": "DS_SQL_Rejected_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "sinkRejectedOrders"
+						}
+					],
+					"transformations": [
+						{
+							"name": "selectOrders"
+						},
+						{
+							"name": "selectCustomers"
+						},
+						{
+							"name": "selectProducts"
+						},
+						{
+							"name": "selectPayments"
+						},
+						{
+							"name": "selectReturns"
+						},
+						{
+							"name": "derivedOrdersClean"
+						},
+						{
+							"name": "derivedProductClean"
+						},
+						{
+							"name": "derivedPaymentClean"
+						},
+						{
+							"name": "derivedReturnsClean"
+						},
+						{
+							"name": "JoinOrdersCustomers"
+						},
+						{
+							"name": "JoinProducts"
+						},
+						{
+							"name": "JoinPayments"
+						},
+						{
+							"name": "JoinReturns"
+						},
+						{
+							"name": "DerivedBusinessColumns"
+						},
+						{
+							"name": "derivedRejectedReason"
+						},
+						{
+							"name": "splitValidRejected"
+						},
+						{
+							"name": "selectFinalSales"
+						},
+						{
+							"name": "selectRejectedOrders"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustomerID as string,",
+						"          CustomerName as string,",
+						"          Email as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Region as string,",
+						"          CustomerSegment as string,",
+						"          SignupDate as date",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> srcCustomers",
+						"source(output(",
+						"          OrderID as string,",
+						"          OrderDate as string,",
+						"          CustomerID as string,",
+						"          ProductID as string,",
+						"          Quantity as short,",
+						"          Discount as short,",
+						"          OrderStatus as string,",
+						"          SalesChannel as string,",
+						"          SalesRep as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> srcOrders",
+						"source(output(",
+						"          PaymentID as string,",
+						"          OrderID as string,",
+						"          PaymentDate as date,",
+						"          PaymentMode as string,",
+						"          PaymentStatus as string,",
+						"          AmountPaid as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> srcPayments",
+						"source(output(",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          SubCategory as string,",
+						"          Brand as string,",
+						"          UnitPrice as short,",
+						"          CostPrice as short,",
+						"          IsActive as boolean",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> srcProducts",
+						"source(output(",
+						"          ReturnID as string,",
+						"          OrderID as string,",
+						"          ReturnDate as date,",
+						"          ReturnReason as string,",
+						"          RefundAmount as short,",
+						"          ReturnStatus as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> srcReturns",
+						"srcOrders select(mapColumn(",
+						"          OrderID,",
+						"          OrderDate,",
+						"          CustomerID,",
+						"          ProductID,",
+						"          Quantity,",
+						"          Discount,",
+						"          OrderStatus,",
+						"          SalesChannel,",
+						"          SalesRep",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectOrders",
+						"srcCustomers select(mapColumn(",
+						"          Cust_CustomerID = CustomerID,",
+						"          CustomerName,",
+						"          Email,",
+						"          City,",
+						"          State,",
+						"          Region,",
+						"          CustomerSegment,",
+						"          SignupDate",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectCustomers",
+						"srcProducts select(mapColumn(",
+						"          Prod_ProductID = ProductID,",
+						"          ProductName,",
+						"          Category,",
+						"          SubCategory,",
+						"          Brand,",
+						"          UnitPrice,",
+						"          CostPrice,",
+						"          IsActive",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectProducts",
+						"srcPayments select(mapColumn(",
+						"          PaymentID,",
+						"          PayOrderID = OrderID,",
+						"          PaymentDate,",
+						"          PaymentMode,",
+						"          PaymentStatus,",
+						"          AmountPaid",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectPayments",
+						"srcReturns select(mapColumn(",
+						"          ReturnID,",
+						"          Return_OrderID = OrderID,",
+						"          ReturnDate,",
+						"          ReturnReason,",
+						"          RefundAmount,",
+						"          ReturnStatus",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectReturns",
+						"selectOrders derive(Clean_OrdersDate = toDate(OrderDate),",
+						"          Clean_quantity = toInteger(Quantity),",
+						"          Clean_Discount = toDecimal(Discount),",
+						"          Clean_OrderStatus = trim(OrderStatus),",
+						"          Clean_CustomerID = trim(CustomerID),",
+						"          Clean_ProductID = trim(ProductID)) ~> derivedOrdersClean",
+						"selectProducts derive(Clean_UnitPrice = toDecimal(UnitPrice),",
+						"          Clean_CostPrice = toDecimal(CostPrice),",
+						"          Clean_IsActive = trim(toString(IsActive))) ~> derivedProductClean",
+						"selectPayments derive(Clean_AmountPaid = toDecimal(AmountPaid),",
+						"          Clean_PaymentStatus = trim(PaymentStatus)) ~> derivedPaymentClean",
+						"selectReturns derive(Clean_RefundAmount = iif(isNull(RefundAmount), toDecimal(0), toDecimal(RefundAmount)),",
+						"          Clean_ReturnStatus = trim(ReturnStatus)) ~> derivedReturnsClean",
+						"derivedOrdersClean, selectCustomers join(Clean_CustomerID == Cust_CustomerID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinOrdersCustomers",
+						"JoinOrdersCustomers, derivedProductClean join(Clean_ProductID == Prod_ProductID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinProducts",
+						"JoinProducts, derivedPaymentClean join(OrderID == PayOrderID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinPayments",
+						"JoinPayments, derivedReturnsClean join(OrderID == Return_OrderID,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinReturns",
+						"JoinReturns derive(GrossAmount = Clean_quantity * Clean_UnitPrice,",
+						"          DiscountAmount = Clean_Discount,",
+						"          NetAmount = (Clean_quantity * Clean_UnitPrice) - Clean_Discount,",
+						"          GSTAmount = ( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) * 0.18,",
+						"          FinalAmount = (Clean_quantity * Clean_UnitPrice) - Clean_Discount,",
+						"          RefundAmountClean = iif(isNull(Clean_RefundAmount), toDecimal(0), Clean_RefundAmount),",
+						"          AdjustedFinalAmount = ( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) - iif(isNull(Clean_RefundAmount), toDecimal(0), Clean_RefundAmount),",
+						"          CostAmount = Clean_quantity * Clean_CostPrice,",
+						"          ProfitAmount = ( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) - (Clean_quantity * Clean_CostPrice),",
+						"          ProfitMargin = iif( ((Clean_quantity * Clean_UnitPrice) - Clean_Discount)==0  || isNull((Clean_quantity * Clean_UnitPrice) - Clean_Discount), toDecimal(0), ( (( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) - (Clean_quantity * Clean_CostPrice))  /  ((Clean_quantity * Clean_UnitPrice) - Clean_Discount) ) *100 ),",
+						"          PaymentFlag = iif(Clean_PaymentStatus == 'Success' , 'Yes', 'No'),",
+						"          ReturnFlag = iif(!isNull(ReturnID) && Clean_ReturnStatus == 'Approved', 'Yes', 'No'),",
+						"          RevenueCategory = iif( (( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) - iif(isNull(Clean_RefundAmount), toDecimal(0), Clean_RefundAmount)) >= 10000, 'High Revenue' , \r",
+						"iif( ( (Clean_quantity * Clean_UnitPrice) - Clean_Discount ) - iif(isNull(Clean_RefundAmount), toDecimal(0), Clean_RefundAmount)>=5000, 'Medium Revenue', 'Low Revenue'))) ~> DerivedBusinessColumns",
+						"DerivedBusinessColumns derive(RejectReason = iif(isNull(OrderID) || trim(OrderID) == '', 'Missing OrderID',\r",
+						"iif(isNull(Clean_OrdersDate), 'Invalid OrderDate',\r",
+						"iif(isNull(Clean_quantity) || Clean_quantity <= 0, 'Invalid Quantity',\r",
+						"iif(isNull(Clean_OrderStatus) || Clean_OrderStatus == '', 'Missing OrderStatus',\r",
+						"iif(isNull(Cust_CustomerID), 'Unknown CustomerID',\r",
+						"iif(isNull(Prod_ProductID), 'Unknown ProductID',\r",
+						"iif(Clean_OrderStatus == 'Pending', 'Pending Order',\r",
+						"iif(Clean_OrderStatus == 'Cancelled', 'Cancelled Order',\r",
+						"iif(Clean_OrderStatus == 'Returned', 'Returned Order',\r",
+						"iif(isNull(Clean_PaymentStatus), 'Missing Payment Record',\r",
+						"iif(Clean_PaymentStatus == 'Failed', 'Payment Failed',\r",
+						"iif(Clean_PaymentStatus == 'Pending', 'Payment Pending',\r",
+						"iif(Clean_PaymentStatus == 'Refunded', 'Payment Refunded',\r",
+						"iif(Clean_PaymentStatus != 'Success', 'Unsuccessful Payment',\r",
+						"'Valid'))))))))))))))) ~> derivedRejectedReason",
+						"derivedRejectedReason split(RejectReason == 'Valid',",
+						"     disjoint: false) ~> splitValidRejected@(validOrders, rejectedOrders)",
+						"splitValidRejected@validOrders select(mapColumn(",
+						"          OrderID,",
+						"          OrderDate = Clean_OrdersDate,",
+						"          CustomerID,",
+						"          CustomerName,",
+						"          Email,",
+						"          City,",
+						"          State,",
+						"          Region,",
+						"          CustomerSegment,",
+						"          ProductID,",
+						"          ProductName,",
+						"          Category,",
+						"          SubCategory,",
+						"          Brand,",
+						"          Quantity = Clean_quantity,",
+						"          Discount = Clean_Discount,",
+						"          OrderStatus = Clean_OrderStatus,",
+						"          SalesChannel,",
+						"          SalesRep,",
+						"          PaymentID,",
+						"          PaymentDate,",
+						"          PaymentMode,",
+						"          PaymentStatus = Clean_PaymentStatus,",
+						"          AmountPaid = Clean_AmountPaid,",
+						"          ReturnID,",
+						"          ReturnDate,",
+						"          ReturnReason,",
+						"          ReturnStatus = Clean_ReturnStatus,",
+						"          RefundAmount = RefundAmountClean,",
+						"          UnitPrice = Clean_UnitPrice,",
+						"          CostPrice = Clean_CostPrice,",
+						"          GrossAmount,",
+						"          DiscountAmount,",
+						"          NetAmount,",
+						"          GSTAmount,",
+						"          FinalAmount,",
+						"          AdjustedFinalAmount,",
+						"          CostAmount,",
+						"          ProfitAmount,",
+						"          ProfitMargin,",
+						"          PaymentFlag,",
+						"          ReturnFlag,",
+						"          RevenueCategory",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectFinalSales",
+						"splitValidRejected@rejectedOrders select(mapColumn(",
+						"          OrderID,",
+						"          OrderDate,",
+						"          CustomerID,",
+						"          ProductID,",
+						"          Quantity,",
+						"          Discount,",
+						"          OrderStatus,",
+						"          SalesChannel,",
+						"          SalesRep,",
+						"          PaymentStatus = Clean_PaymentStatus,",
+						"          ReturnStatus = Clean_ReturnStatus,",
+						"          RejectReason",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> selectRejectedOrders",
+						"selectFinalSales sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          OrderID as string,",
+						"          OrderDate as date,",
+						"          CustomerID as string,",
+						"          CustomerName as string,",
+						"          Email as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Region as string,",
+						"          CustomerSegment as string,",
+						"          ProductID as string,",
+						"          ProductName as string,",
+						"          Category as string,",
+						"          SubCategory as string,",
+						"          Brand as string,",
+						"          Quantity as integer,",
+						"          Discount as decimal(10,4),",
+						"          OrderStatus as string,",
+						"          SalesChannel as string,",
+						"          SalesRep as string,",
+						"          PaymentID as string,",
+						"          PaymentDate as date,",
+						"          PaymentMode as string,",
+						"          PaymentStatus as string,",
+						"          AmountPaid as decimal(18,2),",
+						"          ReturnID as string,",
+						"          ReturnDate as date,",
+						"          ReturnReason as string,",
+						"          ReturnStatus as string,",
+						"          RefundAmount as decimal(18,2),",
+						"          UnitPrice as decimal(18,2),",
+						"          CostPrice as decimal(18,2),",
+						"          GrossAmount as decimal(18,2),",
+						"          DiscountAmount as decimal(18,2),",
+						"          NetAmount as decimal(18,2),",
+						"          GSTAmount as decimal(18,2),",
+						"          FinalAmount as decimal(18,2),",
+						"          AdjustedFinalAmount as decimal(18,2),",
+						"          CostAmount as decimal(18,2),",
+						"          ProfitAmount as decimal(18,2),",
+						"          ProfitMargin as decimal(10,2),",
+						"          PaymentFlag as string,",
+						"          ReturnFlag as string,",
+						"          RevenueCategory as string,",
+						"          LoadDateTime as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          OrderID,",
+						"          OrderDate,",
+						"          CustomerID,",
+						"          CustomerName,",
+						"          Email,",
+						"          City,",
+						"          State,",
+						"          Region,",
+						"          CustomerSegment,",
+						"          ProductID,",
+						"          ProductName,",
+						"          Category,",
+						"          SubCategory,",
+						"          Brand,",
+						"          Quantity,",
+						"          Discount,",
+						"          OrderStatus,",
+						"          SalesChannel,",
+						"          SalesRep,",
+						"          PaymentID,",
+						"          PaymentDate,",
+						"          PaymentMode,",
+						"          PaymentStatus,",
+						"          AmountPaid,",
+						"          ReturnID,",
+						"          ReturnDate,",
+						"          ReturnReason,",
+						"          ReturnStatus,",
+						"          RefundAmount,",
+						"          UnitPrice,",
+						"          CostPrice,",
+						"          GrossAmount,",
+						"          DiscountAmount,",
+						"          NetAmount,",
+						"          GSTAmount,",
+						"          FinalAmount,",
+						"          AdjustedFinalAmount,",
+						"          CostAmount,",
+						"          ProfitAmount,",
+						"          ProfitMargin,",
+						"          PaymentFlag,",
+						"          ReturnFlag,",
+						"          RevenueCategory",
+						"     )) ~> sinkFinalSales",
+						"selectRejectedOrders sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          RejectedID as integer,",
+						"          OrderID as string,",
+						"          OrderDate as string,",
+						"          CustomerID as string,",
+						"          ProductID as string,",
+						"          Quantity as string,",
+						"          Discount as string,",
+						"          OrderStatus as string,",
+						"          SalesChannel as string,",
+						"          SalesRep as string,",
+						"          PaymentStatus as string,",
+						"          ReturnStatus as string,",
+						"          RejectReason as string,",
+						"          SourceFileName as string,",
+						"          RejectedDateTime as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          OrderID,",
+						"          OrderDate,",
+						"          CustomerID,",
+						"          ProductID,",
+						"          Quantity,",
+						"          Discount,",
+						"          OrderStatus,",
+						"          SalesChannel,",
+						"          SalesRep,",
+						"          PaymentStatus,",
+						"          ReturnStatus,",
+						"          RejectReason",
+						"     )) ~> sinkRejectedOrders"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_Customers_Raw_csv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Orders_Raw_CSV')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Payments_Raw_csv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Products_raw_csv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Returns_raw_csv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_Final_Sales_Analytics')]",
+				"[concat(variables('factoryId'), '/datasets/DS_SQL_Rejected_Orders')]"
+			]
+		}
+	]
+}
