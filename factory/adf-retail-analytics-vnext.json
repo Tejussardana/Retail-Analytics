@@ -1,0 +1,15 @@
+{
+	"name": "adf-retail-analytics-vnext",
+	"properties": {
+		"trustModeClaimForMi": {
+			"value": "Enabled",
+			"editable": true
+		}
+	},
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "1b55d20d-4c7c-4334-8b94-aaa630ebe854",
+		"tenantId": "e0275bc0-33e3-4f43-8688-64d5b044a431"
+	}
+}

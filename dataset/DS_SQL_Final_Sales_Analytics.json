@@ -1,0 +1,225 @@
+{
+	"name": "DS_SQL_Final_Sales_Analytics",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_SQL_DB_Retail",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "OrderID",
+				"type": "varchar"
+			},
+			{
+				"name": "OrderDate",
+				"type": "date"
+			},
+			{
+				"name": "CustomerID",
+				"type": "varchar"
+			},
+			{
+				"name": "CustomerName",
+				"type": "varchar"
+			},
+			{
+				"name": "Email",
+				"type": "varchar"
+			},
+			{
+				"name": "City",
+				"type": "varchar"
+			},
+			{
+				"name": "State",
+				"type": "varchar"
+			},
+			{
+				"name": "Region",
+				"type": "varchar"
+			},
+			{
+				"name": "CustomerSegment",
+				"type": "varchar"
+			},
+			{
+				"name": "ProductID",
+				"type": "varchar"
+			},
+			{
+				"name": "ProductName",
+				"type": "varchar"
+			},
+			{
+				"name": "Category",
+				"type": "varchar"
+			},
+			{
+				"name": "SubCategory",
+				"type": "varchar"
+			},
+			{
+				"name": "Brand",
+				"type": "varchar"
+			},
+			{
+				"name": "Quantity",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Discount",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 4
+			},
+			{
+				"name": "OrderStatus",
+				"type": "varchar"
+			},
+			{
+				"name": "SalesChannel",
+				"type": "varchar"
+			},
+			{
+				"name": "SalesRep",
+				"type": "varchar"
+			},
+			{
+				"name": "PaymentID",
+				"type": "varchar"
+			},
+			{
+				"name": "PaymentDate",
+				"type": "date"
+			},
+			{
+				"name": "PaymentMode",
+				"type": "varchar"
+			},
+			{
+				"name": "PaymentStatus",
+				"type": "varchar"
+			},
+			{
+				"name": "AmountPaid",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "ReturnID",
+				"type": "varchar"
+			},
+			{
+				"name": "ReturnDate",
+				"type": "date"
+			},
+			{
+				"name": "ReturnReason",
+				"type": "varchar"
+			},
+			{
+				"name": "ReturnStatus",
+				"type": "varchar"
+			},
+			{
+				"name": "RefundAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "UnitPrice",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "CostPrice",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "GrossAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "DiscountAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "NetAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "GSTAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "FinalAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "AdjustedFinalAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "CostAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "ProfitAmount",
+				"type": "decimal",
+				"precision": 18,
+				"scale": 2
+			},
+			{
+				"name": "ProfitMargin",
+				"type": "decimal",
+				"precision": 10,
+				"scale": 2
+			},
+			{
+				"name": "PaymentFlag",
+				"type": "varchar"
+			},
+			{
+				"name": "ReturnFlag",
+				"type": "varchar"
+			},
+			{
+				"name": "RevenueCategory",
+				"type": "varchar"
+			},
+			{
+				"name": "LoadDateTime",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "final_sales_analytics"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

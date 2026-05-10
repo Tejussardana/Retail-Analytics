@@ -1,0 +1,50 @@
+{
+	"name": "DS_Returns_raw_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_Retail_Vnext",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "returns_raw.csv",
+				"folderPath": "retail/returns/2026/05",
+				"fileSystem": "raw"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "ReturnID",
+				"type": "String"
+			},
+			{
+				"name": "OrderID",
+				"type": "String"
+			},
+			{
+				"name": "ReturnDate",
+				"type": "String"
+			},
+			{
+				"name": "ReturnReason",
+				"type": "String"
+			},
+			{
+				"name": "RefundAmount",
+				"type": "String"
+			},
+			{
+				"name": "ReturnStatus",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

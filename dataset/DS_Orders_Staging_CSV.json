@@ -1,0 +1,24 @@
+{
+	"name": "DS_Orders_Staging_CSV",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_Retail_Vnext",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "retail/orders_staging",
+				"fileSystem": "curated"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

@@ -1,0 +1,50 @@
+{
+	"name": "DS_Payments_Raw_csv",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_ADLS_Retail_Vnext",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "payments_raw.csv",
+				"folderPath": "retail/payments/2026/05",
+				"fileSystem": "raw"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "PaymentID",
+				"type": "String"
+			},
+			{
+				"name": "OrderID",
+				"type": "String"
+			},
+			{
+				"name": "PaymentDate",
+				"type": "String"
+			},
+			{
+				"name": "PaymentMode",
+				"type": "String"
+			},
+			{
+				"name": "PaymentStatus",
+				"type": "String"
+			},
+			{
+				"name": "AmountPaid",
+				"type": "String"
+			}
+		]
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
